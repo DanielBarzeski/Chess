@@ -1,8 +1,5 @@
 package File;
 
-import App.Game;
-import Logic.PieceType;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -10,22 +7,22 @@ import java.io.File;
 import java.io.IOException;
 
 public class Picture {
-
-    // ---- ENUM פנימי עבור כל התמונות ----
     public enum ImageType {
-        CHESS("chess"),
-        BLACK_PAWN("blackPawn"),
         WHITE_PAWN("whitePawn"),
-        BLACK_KNIGHT("blackKnight"),
         WHITE_KNIGHT("whiteKnight"),
-        BLACK_BISHOP("blackBishop"),
         WHITE_BISHOP("whiteBishop"),
-        BLACK_ROOK("blackRook"),
         WHITE_ROOK("whiteRook"),
-        BLACK_QUEEN("blackQueen"),
         WHITE_QUEEN("whiteQueen"),
+        WHITE_KING("whiteKing"),
+        BLACK_PAWN("blackPawn"),
+        BLACK_KNIGHT("blackKnight"),
+        BLACK_BISHOP("blackBishop"),
+        BLACK_ROOK("blackRook"),
+        BLACK_QUEEN("blackQueen"),
         BLACK_KING("blackKing"),
-        WHITE_KING("whiteKing");
+        CHESS("chess"),
+        NUMBERS("nums"),
+        NUMBERS_REVERSED("numsReversed"),;
 
         private final BufferedImage image;
 
@@ -52,42 +49,8 @@ public class Picture {
         }
     }
 
-    public static BufferedImage getImage(PieceType type) {
-        boolean playerWhite = Game.isPLAYER_WHITE(); // השחקן הנוכחי
-
-        // אם השחקן שחור, הפוך את הצבע של החתיכה
-        if (!playerWhite) {
-            type = switch (type) {
-                case WHITE_KING -> PieceType.BLACK_KING;
-                case WHITE_QUEEN -> PieceType.BLACK_QUEEN;
-                case WHITE_ROOK -> PieceType.BLACK_ROOK;
-                case WHITE_BISHOP -> PieceType.BLACK_BISHOP;
-                case WHITE_KNIGHT -> PieceType.BLACK_KNIGHT;
-                case WHITE_PAWN -> PieceType.BLACK_PAWN;
-                case BLACK_KING -> PieceType.WHITE_KING;
-                case BLACK_QUEEN -> PieceType.WHITE_QUEEN;
-                case BLACK_ROOK -> PieceType.WHITE_ROOK;
-                case BLACK_BISHOP -> PieceType.WHITE_BISHOP;
-                case BLACK_KNIGHT -> PieceType.WHITE_KNIGHT;
-                case BLACK_PAWN -> PieceType.WHITE_PAWN;
-            };
-        }
-
-        // מחזיר את התמונה הרגילה מה-enum
-        return switch (type) {
-            case WHITE_KING -> ImageType.WHITE_KING.getImage();
-            case WHITE_QUEEN -> ImageType.WHITE_QUEEN.getImage();
-            case WHITE_ROOK -> ImageType.WHITE_ROOK.getImage();
-            case WHITE_BISHOP -> ImageType.WHITE_BISHOP.getImage();
-            case WHITE_KNIGHT -> ImageType.WHITE_KNIGHT.getImage();
-            case WHITE_PAWN -> ImageType.WHITE_PAWN.getImage();
-            case BLACK_KING -> ImageType.BLACK_KING.getImage();
-            case BLACK_QUEEN -> ImageType.BLACK_QUEEN.getImage();
-            case BLACK_ROOK -> ImageType.BLACK_ROOK.getImage();
-            case BLACK_BISHOP -> ImageType.BLACK_BISHOP.getImage();
-            case BLACK_KNIGHT -> ImageType.BLACK_KNIGHT.getImage();
-            case BLACK_PAWN -> ImageType.BLACK_PAWN.getImage();
-        };
+    public static BufferedImage getImage(byte pieceValue) {
+        return ImageType.values()[pieceValue].getImage();
     }
 
 }

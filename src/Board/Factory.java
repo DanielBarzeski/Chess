@@ -1,30 +1,30 @@
 package Board;
+
 import App.Clock;
-import App.Game;
 import File.Picture;
-import Logic.BitBoard;
-import Logic.Piece;
-import Logic.PieceType;
-import Logic.Movement.*;
-import LookUpTables.KnightMoves;
+import Logic.Position;
 
 import java.awt.*;
-import static Logic.Movement.mouse;
+import java.util.ArrayList;
+
+import static Data.Constants.CELL_SIZE;
+import static Data.Variables.theWhitePlayerIsDown;
+import static Board.Mouse.mouse;
 
 public class Factory {
-
-    public static final int CELL_SIZE = 60;
-    private final BitBoard bitBoard;
-    private Piece  currentPiece;
+    private final Position position;
+    private Piece currentPiece;
     private final boolean ai;
-    private boolean white;
-    private Rectangle rectangle;
+    private boolean holdingPiece;
+    private final ArrayList<Point> availableMoves;
+    private final Point fromSquare, toSquare;
 
     public Factory(boolean ai) {
         this.ai = ai;
-        this.bitBoard = new BitBoard();
-        this.white = Game.isPLAYER_WHITE();
-
+        this.position = new Position(theWhitePlayerIsDown());
+        this.availableMoves = new ArrayList<>();
+        this.fromSquare = new Point(-1, -1);
+        this.toSquare = new Point(-1, -1);
     }
 
     public static Factory createBoard(boolean ai) {
@@ -32,172 +32,115 @@ public class Factory {
     }
 
     public void update() {
-        int mouseX = mouse.getX();
-        int mouseY = mouse.getY();
-        int mouseCol = mouseX / CELL_SIZE;
-        int mouseRow = mouseY / CELL_SIZE;
-
-        moveTimer();
-
-        // ---- שלב 1: בחירה בלחיצה ----
-        if (mouse.isPressed() && currentPiece == null) {
-            PieceType pieceType = this.bitBoard.getPieceType(mouseCol, mouseRow);
-
-            if (pieceType != null) {
-                Piece tempPiece = new Piece(mouseX, mouseY, pieceType);
-
-
-                if (tempPiece.isWhite() == white) {
-                    currentPiece = tempPiece;
-                    rectangle = new Rectangle(currentPiece.getPrevX(), currentPiece.getPrevY(), -1 * CELL_SIZE, -1 * CELL_SIZE);
-
-                }
-            }
-        }
-
-        // ---- שלב 2: גרירה חיה ----
-        if (mouse.isDragged() && currentPiece != null) {
-            currentPiece.setCurrX(mouseX);
-            currentPiece.setCurrY(mouseY);
-            rectangle.setSize(mouseX, mouseY);
-
-        }
-
-        // ---- שלב 3: שחרור (סיום המהלך) ----
-        if (!mouse.isPressed() && !mouse.isDragged() && currentPiece != null) {
-
-            rectangle.setSize(mouseX, mouseY);
-            PieceType pieceType = this.bitBoard.getPieceType(mouseCol, mouseRow);
-            boolean moved = false;
-
-            if (pieceType != null) { // יש כלי ביעד
-                if (this.bitBoard.removePiece(mouseCol, mouseRow, !currentPiece.isWhite())) {
-                    moved = true;
-                } else {
-                    // אם היעד הוא כלי שלי → מחליף בחירה
-                    Piece tempPiece = new Piece(mouseX, mouseY, pieceType);
-                    if (tempPiece.isWhite() == white) {
-                        currentPiece = tempPiece;
-                        rectangle = new Rectangle(currentPiece.getPrevX(), currentPiece.getPrevY(), -1 * CELL_SIZE, -1 * CELL_SIZE);
-
-                    }
-
-                }
-            } else {
-                moved = true; // תא ריק
-            }
-
-            if (moved) {
-                bitBoard.movePiece(
-                        currentPiece.getPrevX() / CELL_SIZE,
-                        currentPiece.getPrevY() / CELL_SIZE,
-                        mouseCol,
-                        mouseRow
-                );
-                currentPiece = null;
-                white = !white; // החלפת תור
-            }
-
-        }
-
-
     }
 
-    private long lastUpdateTime = System.currentTimeMillis();
-    private void moveTimer() {
-        long currentTime = System.currentTimeMillis();
-        if (currentTime - lastUpdateTime >= 1000) { // עברה שנייה
-            if (white) Clock.whiteTimer.move();
-            else Clock.blackTimer.move();
-
-            lastUpdateTime += 1000; // מעדכן לשנייה הבאה
-        }
+    public void updateClock() {
+        if (this.position.isWhiteTurn()) Clock.whiteTimer.move();
+        else Clock.blackTimer.move();
     }
-
-
-
 
     public void drawGame(Graphics g) {
-        // ---- ציור לוח ----
+        drawBoard(g);
+        drawSquares(g);
+        drawPieces(g);
+    }
+
+    private void drawBoard(Graphics g) {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
-                g.setColor(new Color(205, 143, 33).darker());
-                if ((row + col) % 2 != 0) {
-                    g.fillRect(
-                            col * Factory.CELL_SIZE,
-                            row * Factory.CELL_SIZE,
-                            Factory.CELL_SIZE,
-                            Factory.CELL_SIZE
-                    );
-                }
-                g.setColor(new Color(205, 143, 33).darker().darker());
-                g.drawRect(
-                        col * Factory.CELL_SIZE,
-                        row * Factory.CELL_SIZE,
-                        Factory.CELL_SIZE - 1,
-                        Factory.CELL_SIZE - 1
-                );
+                if ((row + col) % 2 != 0) g.setColor(new Color(205, 143, 33).darker());
+                else g.setColor(new Color(205, 143, 33));
+                g.fillRect(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE);
             }
         }
+    }
 
-        // ---- ציור המלבן הצהוב לפני החתיכות ----
-        if (rectangle != null) {
-            Graphics2D g2d = (Graphics2D) g; // המרה ל-Graphics2D
-            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f));
-            g2d.setColor(Color.orange);
-
-            g2d.fillRect(rectangle.x / CELL_SIZE * CELL_SIZE, rectangle.y / CELL_SIZE * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
-            g2d.fillRect(rectangle.width / CELL_SIZE * CELL_SIZE, rectangle.height / CELL_SIZE * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
-
-            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+    private void drawSquares(Graphics g) {
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
+        g2d.setColor(Color.orange);
+        g2d.fillRect(toSquare.x * CELL_SIZE, toSquare.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        g2d.fillRect(fromSquare.x * CELL_SIZE, fromSquare.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f));
+        if (currentPiece != null) {
+            g2d.setColor(new Color(70, 130, 180));
+            for (Point availableMove : availableMoves) {
+                g2d.fillRect(availableMove.x * CELL_SIZE, availableMove.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            }
         }
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+    }
 
-
-        // ---- ציור החתיכות ----
+    private void drawPieces(Graphics g) {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
-                boolean check = true;
+                boolean paint = true;
                 if (currentPiece != null) {
-                    if (currentPiece.getPrevX() / CELL_SIZE == col && currentPiece.getPrevY() / CELL_SIZE == row) {
+                    if (currentPiece.getPrevCol() == col && currentPiece.getPrevRow() == row) {
                         if (mouse.isDragged()) {
-                            check = false;
+                            if (holdingPiece) {
+                                paint = false;
+                            }
                         }
-
                     }
                 }
 
-
-                PieceType type = this.bitBoard.getPieceType(col, row);
-                if (type != null && check) {
-                    g.drawImage(
-                            Picture.getImage(type),
-                            col * Factory.CELL_SIZE,
-                            row * Factory.CELL_SIZE,
-                            Factory.CELL_SIZE,
-                            Factory.CELL_SIZE,
-                            null
+                byte pieceValue = this.position.getPieceValue(row * 8 + col);
+                if (pieceValue != -1 && paint) {
+                    g.drawImage(Picture.getImage(pieceValue),
+                            col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE, null
                     );
                 }
 
             }
         }
         if (currentPiece != null) {
-            g.drawImage(
-                    Picture.getImage(currentPiece.getType()),
-                    currentPiece.getCurrX() - CELL_SIZE / 2,
-                    currentPiece.getCurrY() - CELL_SIZE / 2,
-                    Factory.CELL_SIZE,
-                    Factory.CELL_SIZE,
-                    null
-            );
+            if (mouse.isDragged()) {
+                if (holdingPiece) {
+                    g.drawImage(Picture.getImage(currentPiece.getValue()),
+                            currentPiece.getCurrX() - CELL_SIZE / 2, currentPiece.getCurrY() - CELL_SIZE / 2,
+                            CELL_SIZE, CELL_SIZE, null
+                    );
+                }
+            }
 
         }
-
-
     }
 
     public boolean isAi() {
         return ai;
+    }
+
+    public Point getFromSquare() {
+        return fromSquare;
+    }
+
+    public Point getToSquare() {
+        return toSquare;
+    }
+
+    public Piece getCurrentPiece() {
+        return currentPiece;
+    }
+
+    public ArrayList<Point> getAvailableMoves() {
+        return availableMoves;
+    }
+
+    public void setHoldingPiece(boolean holdingPiece) {
+        this.holdingPiece = holdingPiece;
+    }
+
+    public boolean isHoldingPiece() {
+        return holdingPiece;
+    }
+
+    public void setCurrentPiece(Piece currentPiece) {
+        this.currentPiece = currentPiece;
+    }
+
+    public Position getPosition() {
+        return position;
     }
 }
 

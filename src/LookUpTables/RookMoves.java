@@ -1,11 +1,21 @@
 package LookUpTables;
 
-public class RookMoves {
+import File.AttacksLoader;
 
-    /**
-     * מסכות חסימה (Blocker Masks) - מייצג את המשבצות הרלוונטיות לחישוב מהלכי צריח
-     */
-    public static final long[] BLOCKERS = {
+public class RookMoves {
+    private static long[][] ATTACKS;
+
+    public static void initiate() {
+        ATTACKS = AttacksLoader.loadAttacks("magic/rookAttacksOutput.txt");
+    }
+
+    public static long getPossibleMoves(int square, long occupancy) {
+        long relevantOccupancy = occupancy & BLOCKERS[square];
+        int index = (int) ((relevantOccupancy * MAGIC_NUMBERS[square]) >>> SHIFTS[square]);
+        return ATTACKS[square][index];
+    }
+
+    private static final long[] BLOCKERS = {
             // Rank 1 (a1-h1)
             0x000101010101017EL, // a1 (0)
             0x000202020202027CL, // b1 (1)
@@ -87,10 +97,7 @@ public class RookMoves {
             0x7E80808080808000L  // h8 (63)
     };
 
-    /**
-     * מספרים קסומים (Magic Numbers) - משמשים לחישוב מהיר של מהלכי צריח
-     */
-    public static final long[] MAGIC_NUMBERS = {
+    private static final long[] MAGIC_NUMBERS = {
             // Rank 1 (a1-h1)
             0x8080041061804000L, // a1 (0)
             0x8200102082450200L, // b1 (1)
@@ -171,11 +178,11 @@ public class RookMoves {
             0x000001020800B004L, // g8 (62)
             0x0602002100940042L  // h8 (63)
     };
-    public static final int[] SHIFTS = {
+    private static final int[] SHIFTS = {
             // Rank 1
-            52, 53, 53, 53, 53, 53, 53, 52,  // a1-h1 (פינות=12 bits, שאר=11 bits)
+            52, 53, 53, 53, 53, 53, 53, 52,  // a1-h1
             // Rank 2
-            53, 54, 54, 54, 54, 54, 54, 53,  // a2-h2 (שוליים=11, מרכז=10)
+            53, 54, 54, 54, 54, 54, 54, 53,  // a2-h2
             // Rank 3
             53, 54, 54, 54, 54, 54, 54, 53,  // a3-h3
             // Rank 4
@@ -187,29 +194,6 @@ public class RookMoves {
             // Rank 7
             53, 54, 54, 54, 54, 54, 54, 53,  // a7-h7
             // Rank 8
-            52, 53, 53, 53, 53, 53, 53, 52   // a8-h8 (פינות=12 bits, שאר=11 bits)
+            52, 53, 53, 53, 53, 53, 53, 52   // a8-h8
     };
-
-    /**
-     * מדפיס ייצוג ויזואלי של bitboard
-     * @param bitboard המספר להדפסה
-     */
-    public static void printBitboard(long bitboard) {
-        System.out.println("  a b c d e f g h");
-
-        int startRank = 0;
-        int endRank = 8;
-        int stepRank = 1;
-
-        for (int rank = startRank; rank != endRank; rank += stepRank) {
-            System.out.print((rank + 1) + " ");
-            for (int file = 0; file < 8; file++) {
-                int square = rank * 8 + file;
-                boolean isSet = ((bitboard >>> square) & 1L) == 1L;
-                System.out.print(isSet ? "X " : ". ");
-            }
-            System.out.println();
-        }
-        System.out.println();
-    }
 }
